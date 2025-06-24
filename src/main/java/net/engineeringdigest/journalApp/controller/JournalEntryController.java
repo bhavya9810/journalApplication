@@ -10,10 +10,10 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/journal")
+@RequestMapping("/_journal")
 public class JournalEntryController {
 
-    private Map<Long,JournalEntry> journalEntries=new HashMap<>();
+    private Map<String,JournalEntry> journalEntries=new HashMap<>();
 
     @GetMapping
     public List<JournalEntry> getAll(){
@@ -22,7 +22,7 @@ public class JournalEntryController {
     @PostMapping
     public boolean createEntry(@RequestBody JournalEntry myEntry){
 
-        journalEntries.put(myEntry.getId(), myEntry);
+//        journalEntries.put(myEntry.getId(), myEntry);
 
         return true;
 
@@ -41,7 +41,7 @@ public class JournalEntryController {
     }
 
     @PutMapping("id/{myId}")
-    public JournalEntry updateJournalById(@PathVariable Long myId,@RequestBody JournalEntry myEntry){
+    public JournalEntry updateJournalById(@PathVariable String myId,@RequestBody JournalEntry myEntry){
 
        return  journalEntries.put(myId,myEntry);
     }
