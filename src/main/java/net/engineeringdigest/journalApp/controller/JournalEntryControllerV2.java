@@ -5,13 +5,13 @@ import net.engineeringdigest.journalApp.Service.JournalEntryService;
 import net.engineeringdigest.journalApp.entity.JournalEntry;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.xml.ws.Response;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/journal")
@@ -20,37 +20,60 @@ public class JournalEntryControllerV2 {
     private JournalEntryService journalEntryService;
 
     @GetMapping
-    public List<JournalEntry> getAll(){
-        return journalEntryService.getAllEntries();
+    public ResponseEntity<?> getAll(){
+        List<JournalEntry> allEntries = journalEntryService.getAllEntries();
+
+        if(!allEntries.isEmpty() && allEntries != null){
+            return new ResponseEntity<>(allEntries,HttpStatus.OK);
+        }
+        else return new ResponseEntity<>("No Journal Entry is present ",HttpStatus.NOT_FOUND);
+
     }
 
 
     @PostMapping
-    public JournalEntry createEntry(@RequestBody JournalEntry myEntry){
-        myEntry.setDate(LocalDateTime.now());
+    public ResponseEntity<JournalEntry> createEntry(@RequestBody JournalEntry myEntry){
 
-        journalEntryService.saveEntry(myEntry);
-        return myEntry;
+        try{
+            myEntry.setDate(LocalDateTime.now());
+
+            journalEntryService.saveEntry(myEntry);
+            return new ResponseEntity<>(myEntry,HttpStatus.CREATED);
+        }catch(Exception e){
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
 
     }
 
     @GetMapping("id/{myId}")
-    public JournalEntry getJournalEntryById(@PathVariable ObjectId myId){
+    public ResponseEntity<JournalEntry> getJournalEntryById(@PathVariable ObjectId myId){
 
-        return journalEntryService.getById(myId).orElse(null);
+        Optional<JournalEntry> journalEntry = journalEntryService.getById(myId);
+
+//        if(journalEntry.isPresent()){
+//            return new ResponseEntity<>(journalEntry.get(), HttpStatus.OK);
+//        }
+//        else return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+
+
+        // same as above without lambda expression
+
+        return journalEntry.map(entry -> new ResponseEntity<>(entry, HttpStatus.OK)).orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+
     }
 
     @DeleteMapping("id/{myId}")
-    public boolean deleteJournalEntryById(@PathVariable ObjectId myId){
+    public ResponseEntity<?> deleteJournalEntryById(@PathVariable ObjectId myId){
 
       journalEntryService.deleteJournalById(myId);
-      return true;
+      return new ResponseEntity<>("Deleted Successfully",HttpStatus.NO_CONTENT);
 
 
     }
 
     @PutMapping("id/{myId}")
-    public JournalEntry updateJournalById(@PathVariable ObjectId myId,@RequestBody JournalEntry newEntry){
+    public ResponseEntity<?> updateJournalById(@PathVariable ObjectId myId,@RequestBody JournalEntry newEntry){
 
         JournalEntry oldEntry = journalEntryService.getById(myId).orElse(null);
 
@@ -58,10 +81,13 @@ public class JournalEntryControllerV2 {
 
             oldEntry.setTitle(newEntry.getTitle()!=null && !newEntry.getTitle().equals("") ? newEntry.getTitle() : oldEntry.getTitle() );
             oldEntry.setContent(newEntry.getContent()!=null && !newEntry.getContent().equals("") ? newEntry.getContent() : oldEntry.getContent());
+            journalEntryService.saveEntry(oldEntry);
+            return new ResponseEntity<>(oldEntry,HttpStatus.OK);
         }
+        else return new ResponseEntity<>("Journal Entry you are trying to update, not present in Database",HttpStatus.NOT_FOUND);
 
-        journalEntryService.saveEntry(oldEntry);
-        return oldEntry;
+
+
     }
 
 
